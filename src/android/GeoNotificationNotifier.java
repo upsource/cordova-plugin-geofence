@@ -26,7 +26,7 @@ public class GeoNotificationNotifier {
 
     public void notify(Notification notification) {
         notification.setContext(context);
-        NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(context)
+        NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(context, GeofencePlugin.DEFAULT_CHANNEL_ID)
             .setVibrate(notification.getVibrate())
             .setSmallIcon(notification.getSmallIcon())
             .setLargeIcon(notification.getLargeIcon())
@@ -38,6 +38,8 @@ public class GeoNotificationNotifier {
             String packageName = context.getPackageName();
             Intent resultIntent = context.getPackageManager()
                 .getLaunchIntentForPackage(packageName);
+            //reuse activity if any
+            resultIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
 
             if (notification.data != null) {
                 resultIntent.putExtra("geofence.notification.data", notification.getDataJson());
