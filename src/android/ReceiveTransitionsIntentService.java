@@ -1,9 +1,11 @@
 package com.cowbell.cordova.geofence;
 
 import android.app.IntentService;
+import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.Context;
 import android.content.Intent;
+import android.os.Build;
 import android.util.Log;
 
 import com.google.android.gms.location.Geofence;
@@ -42,7 +44,7 @@ public class ReceiveTransitionsIntentService extends IntentService {
         logger.log(Log.DEBUG, "ReceiveTransitionsIntentService - onHandleIntent");
         Intent broadcastIntent = new Intent(GeofenceTransitionIntent);
         notifier = new GeoNotificationNotifier(
-            (NotificationManager) this.getSystemService(Context.NOTIFICATION_SERVICE),
+                getNotificationManager(),
             this
         );
 
@@ -89,5 +91,17 @@ public class ReceiveTransitionsIntentService extends IntentService {
             }
         }
         sendBroadcast(broadcastIntent);
+    }
+
+    private NotificationManager getNotificationManager() {
+        NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+        if (Build.VERSION.SDK_INT >= 26/*Build.VERSION_CODES.O*/) {
+            NotificationChannel notificationChannel = new NotificationChannel(
+                    GeofencePlugin.DEFAULT_CHANNEL_ID, "Geofence Notifications",
+                    NotificationManager.IMPORTANCE_DEFAULT);
+            nm.createNotificationChannel(notificationChannel);
+        }
+
+        return nm;
     }
 }

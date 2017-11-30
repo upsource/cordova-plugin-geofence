@@ -24,7 +24,7 @@
     <dependency id="es6-promise-plugin" />
 
     <!-- android -->
-    <platform name="android">
+    <platform name="android" spec=">=6.3.0">
         <source-file src="src/android/AbstractGoogleServiceCommand.java" target-dir="src/com/cowbell/cordova/geofence" />
         <source-file src="src/android/AddGeofenceCommand.java" target-dir="src/com/cowbell/cordova/geofence" />
         <source-file src="src/android/AssetUtil.java" target-dir="src/com/cowbell/cordova/geofence" />
