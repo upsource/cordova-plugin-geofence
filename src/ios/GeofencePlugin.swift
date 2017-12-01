@@ -1,26 +1,23 @@
 import WebKit
 import UserNotifications
 
-@objc(HWPGeofencePlugin) class GeofencePlugin : CDVPlugin {
+@objc(HWPGeofencePlugin) class GeofencePlugin : CDVPlugin, UNUserNotificationCenterDelegate {
     
-    let geoNotificationManager = GeoNotificationManager()
-    
+    lazy var center = UNUserNotificationCenter.current()
+    var wasloadedfromnotification = false
     override func pluginInitialize () {
         print("pluginInitialize GeofencePlugin");
+        center.delegate = self;
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(GeofencePlugin.finishLaunching(_:)),
+            name: NSNotification.Name(rawValue: "UIApplicationDidFinishLaunchingNotification"),
+            object: nil
+        )
     }
     
-    func initialize(_ command: CDVInvokedUrlCommand) {
-        print("initialize GeofencePlugin")
-        geoNotificationManager.webView = self.webView
-        geoNotificationManager.center.requestAuthorization(options: [.alert, .sound]) {
-            (granted, error) in
-            if granted && self.geoNotificationManager.checkRequirements() {
-                self.commandDelegate!.send(CDVPluginResult(status: CDVCommandStatus_OK), callbackId: command.callbackId)
-            }
-            self.commandDelegate!.send(
-                CDVPluginResult(status: CDVCommandStatus_ILLEGAL_ACCESS_EXCEPTION,
-                                messageAs: "no auth to send notifications"), callbackId: command.callbackId)
-        }
+    func finishLaunching(_ notification: NSNotification) {
+        print(center.delegate.debugDescription)
     }
     
     func deviceReady(_ command: CDVInvokedUrlCommand) {
@@ -29,11 +26,24 @@ import UserNotifications
             CDVPluginResult(status: CDVCommandStatus_OK), callbackId: command.callbackId)
     }
     
+    func initialize(_ command: CDVInvokedUrlCommand) {
+        print("initialize GeofencePlugin")
+        center.requestAuthorization(options: [.alert, .sound]) {
+            (granted, error) in
+            if granted && self.checkRequirements() {
+                self.commandDelegate!.send(CDVPluginResult(status: CDVCommandStatus_OK), callbackId: command.callbackId)
+            }
+            self.commandDelegate!.send(
+                CDVPluginResult(status: CDVCommandStatus_ILLEGAL_ACCESS_EXCEPTION,
+                                messageAs: "no auth to send notifications"), callbackId: command.callbackId)
+        }
+    }
+    
     func addOrUpdate(_ command: CDVInvokedUrlCommand) {
         print("addOrUpdate GeofencePlugin")
         DispatchQueue.global(qos: DispatchQoS.QoSClass.default).async {
             for geo in command.arguments {
-                self.geoNotificationManager.addOrUpdateGeoNotification(JSON(geo))
+                self.addOrUpdateGeoNotification(JSON(geo))
             }
             DispatchQueue.main.async {
                 self.commandDelegate!.send(
@@ -45,22 +55,12 @@ import UserNotifications
     func removeAll(_ command: CDVInvokedUrlCommand) {
         print("removeAll GeofencePlugin")
         DispatchQueue.global(qos: DispatchQoS.QoSClass.default).async {
-            self.geoNotificationManager.removeAllGeoNotifications()
+            self.removeAllGeoNotifications()
             DispatchQueue.main.async {
                 self.commandDelegate!.send(
                     CDVPluginResult(status: CDVCommandStatus_OK), callbackId: command.callbackId)
             }
         }
-    }
-}
-
-class GeoNotificationManager : NSObject, UNUserNotificationCenterDelegate {
-    var webView: Optional<UIView>
-    let center = UNUserNotificationCenter.current()
-    
-    override init() {
-        super.init()
-        center.delegate = self
     }
     
     func addOrUpdateGeoNotification(_ geoNotification: JSON) {
@@ -131,8 +131,8 @@ class GeoNotificationManager : NSObject, UNUserNotificationCenterDelegate {
         switch response.actionIdentifier {
         case UNNotificationDefaultActionIdentifier:
             let data = response.notification.request.content.userInfo["geofence.notification.data"] as? String
-            let js = "setTimeout('geofence.onNotificationClicked(" + data! + ")',0)"
-            evaluateJs(js)
+            evaluateJs("window.opendata = " + data!)
+            evaluateJs("setTimeout('geofence.onNotificationClicked(" + data! + ")',0)")
         default:
             print("Unknown action")
         }
@@ -160,5 +160,3 @@ class GeoNotificationManager : NSObject, UNUserNotificationCenterDelegate {
         center.removeAllPendingNotificationRequests()
     }
 }
-
-
