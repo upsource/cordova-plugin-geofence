@@ -131,6 +131,7 @@
         <config-file target="config.xml" parent="/*">
           <feature name="GeofencePlugin">
             <param name="ios-package" value="HWPGeofencePlugin"/>
+            <param name="onload" value="true" />
           </feature>
         </config-file>
         <header-file src="src/ios/Geofence-Plugin-Bridging-Header.h" />
