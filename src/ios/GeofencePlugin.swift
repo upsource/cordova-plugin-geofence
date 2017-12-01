@@ -4,10 +4,10 @@ import UserNotifications
 @objc(HWPGeofencePlugin) class GeofencePlugin : CDVPlugin, UNUserNotificationCenterDelegate {
     
     lazy var center = UNUserNotificationCenter.current()
-    var wasloadedfromnotification = false
+    lazy var delegate = GeofenceDelegate(webView: (self.webView as! Optional<UIWebView>)!)
+    
     override func pluginInitialize () {
         print("pluginInitialize GeofencePlugin");
-        center.delegate = self;
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(GeofencePlugin.finishLaunching(_:)),
@@ -17,7 +17,7 @@ import UserNotifications
     }
     
     func finishLaunching(_ notification: NSNotification) {
-        print(center.delegate.debugDescription)
+        center.delegate = delegate;
     }
     
     func deviceReady(_ command: CDVInvokedUrlCommand) {
@@ -28,9 +28,12 @@ import UserNotifications
     
     func initialize(_ command: CDVInvokedUrlCommand) {
         print("initialize GeofencePlugin")
+        if(delegate.lastlatlon != "null") {
+            delegate.evaluateJs("window.opendata = " + delegate.lastlatlon)
+        }
         center.requestAuthorization(options: [.alert, .sound]) {
             (granted, error) in
-            if granted && self.checkRequirements() {
+            if granted && self.delegate.checkRequirements() {
                 self.commandDelegate!.send(CDVPluginResult(status: CDVCommandStatus_OK), callbackId: command.callbackId)
             }
             self.commandDelegate!.send(
@@ -43,7 +46,7 @@ import UserNotifications
         print("addOrUpdate GeofencePlugin")
         DispatchQueue.global(qos: DispatchQoS.QoSClass.default).async {
             for geo in command.arguments {
-                self.addOrUpdateGeoNotification(JSON(geo))
+                self.delegate.addOrUpdateGeoNotification(JSON(geo))
             }
             DispatchQueue.main.async {
                 self.commandDelegate!.send(
@@ -55,12 +58,25 @@ import UserNotifications
     func removeAll(_ command: CDVInvokedUrlCommand) {
         print("removeAll GeofencePlugin")
         DispatchQueue.global(qos: DispatchQoS.QoSClass.default).async {
-            self.removeAllGeoNotifications()
+            self.delegate.removeAllGeoNotifications()
             DispatchQueue.main.async {
                 self.commandDelegate!.send(
                     CDVPluginResult(status: CDVCommandStatus_OK), callbackId: command.callbackId)
             }
         }
+    }
+    
+}
+
+
+class GeofenceDelegate : NSObject, UNUserNotificationCenterDelegate {
+
+    lazy var center = UNUserNotificationCenter.current()
+    var webView: Optional<UIWebView>
+    var lastlatlon: String = "null"
+    
+    init(webView: UIWebView) {
+        self.webView = webView
     }
     
     func addOrUpdateGeoNotification(_ geoNotification: JSON) {
@@ -105,11 +121,7 @@ import UserNotifications
     func evaluateJs (_ script: String) {
         print("evaluateJs GeofencePlugin")
         if let webView = self.webView  {
-            if let uiWebView = webView as? UIWebView {
-                uiWebView.stringByEvaluatingJavaScript(from: script)
-            } else if let wkWebView = webView as? WKWebView {
-                wkWebView.evaluateJavaScript(script, completionHandler: nil)
-            }
+            webView.stringByEvaluatingJavaScript(from: script)
         } else {
             print("webView is nil")
         }
@@ -126,13 +138,12 @@ import UserNotifications
     func userNotificationCenter(_ center: UNUserNotificationCenter,
                                 didReceive response: UNNotificationResponse,
                                 withCompletionHandler completionHandler: @escaping () -> Void) {
-        
         print("userNotificationCenter2 GeofencePlugin")
         switch response.actionIdentifier {
         case UNNotificationDefaultActionIdentifier:
-            let data = response.notification.request.content.userInfo["geofence.notification.data"] as? String
-            evaluateJs("window.opendata = " + data!)
-            evaluateJs("setTimeout('geofence.onNotificationClicked(" + data! + ")',0)")
+            self.lastlatlon = (response.notification.request.content.userInfo["geofence.notification.data"] as! String)
+            evaluateJs("window.opendata = " + self.lastlatlon)
+            evaluateJs("setTimeout('geofence.onNotificationClicked(" + self.lastlatlon + ")',0)")
         default:
             print("Unknown action")
         }
@@ -159,4 +170,5 @@ import UserNotifications
     func removeAllGeoNotifications() {
         center.removeAllPendingNotificationRequests()
     }
+
 }
