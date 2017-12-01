@@ -27,6 +27,7 @@ public class GeoNotificationNotifier {
     public void notify(Notification notification) {
         notification.setContext(context);
         NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(context, GeofencePlugin.DEFAULT_CHANNEL_ID)
+            .setDefaults(NotificationCompat.DEFAULT_VIBRATE | NotificationCompat.DEFAULT_SOUND)
             .setVibrate(notification.getVibrate())
             .setSmallIcon(notification.getSmallIcon())
             .setLargeIcon(notification.getLargeIcon())
@@ -39,7 +40,7 @@ public class GeoNotificationNotifier {
             Intent resultIntent = context.getPackageManager()
                 .getLaunchIntentForPackage(packageName);
             //reuse activity if any
-            resultIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
+            resultIntent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
 
             if (notification.data != null) {
                 resultIntent.putExtra("geofence.notification.data", notification.getDataJson());
@@ -50,14 +51,6 @@ public class GeoNotificationNotifier {
             PendingIntent resultPendingIntent = stackBuilder.getPendingIntent(
                 notification.id, PendingIntent.FLAG_UPDATE_CURRENT);
             mBuilder.setContentIntent(resultPendingIntent);
-        }
-        try {
-            Uri notificationSound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
-            Ringtone r = RingtoneManager.getRingtone(context, notificationSound);
-            r.play();
-        } catch (Exception e) {
-        	beepHelper.startTone("beep_beep_beep");
-            e.printStackTrace();
         }
         notificationManager.notify(notification.id, mBuilder.build());
         logger.log(Log.DEBUG, notification.toString());

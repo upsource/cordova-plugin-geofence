@@ -19,7 +19,6 @@ public class GeoNotificationManager {
     private Context context;
     private GeoNotificationStore geoNotificationStore;
     private Logger logger;
-    private List<Geofence> geoFences;
     private PendingIntent pendingIntent;
     private GoogleServiceCommandExecutor googleServiceCommandExecutor;
 
@@ -38,7 +37,7 @@ public class GeoNotificationManager {
 
     public void loadFromStorageAndInitializeGeofences() {
         List<GeoNotification> geoNotifications = geoNotificationStore.getAll();
-        geoFences = new ArrayList<Geofence>();
+        List<Geofence> geoFences = new ArrayList<Geofence>();
         for (GeoNotification geo : geoNotifications) {
             geoFences.add(geo.toGeofence());
         }
@@ -47,11 +46,6 @@ public class GeoNotificationManager {
                 new AddGeofenceCommand(context, pendingIntent, geoFences)
             );
         }
-    }
-
-    public List<GeoNotification> getWatched() {
-        List<GeoNotification> geoNotifications = geoNotificationStore.getAll();
-        return geoNotifications;
     }
 
     private boolean areGoogleServicesAvailable() {

@@ -98,7 +98,7 @@ public class ReceiveTransitionsIntentService extends IntentService {
         if (Build.VERSION.SDK_INT >= 26/*Build.VERSION_CODES.O*/) {
             NotificationChannel notificationChannel = new NotificationChannel(
                     GeofencePlugin.DEFAULT_CHANNEL_ID, "Geofence Notifications",
-                    NotificationManager.IMPORTANCE_DEFAULT);
+                    NotificationManager.IMPORTANCE_HIGH);
             nm.createNotificationChannel(notificationChannel);
         }
 
