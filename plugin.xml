@@ -112,12 +112,7 @@
 
     <!-- ios -->
     <platform name="ios">
-        <preference name="GEOFENCE_ALWAYS_USAGE_DESCRIPTION" default="${EXECUTABLE_NAME} Would Like to Use Your Current Location Even In Background." />
-        <config-file target="*-Info.plist" parent="NSLocationAlwaysUsageDescription">
-            <string>$GEOFENCE_ALWAYS_USAGE_DESCRIPTION</string>
-        </config-file>
-
-        <preference name="GEOFENCE_IN_USE_USAGE_DESCRIPTION" default="${EXECUTABLE_NAME} Would Like to Use Your Current Location When In Use." />
+        <preference name="GEOFENCE_IN_USE_USAGE_DESCRIPTION" default="${EXECUTABLE_NAME} Möchte auf Ihre aktuelle Position zugreifen, während Sie die App nutzen." />
         <config-file target="*-Info.plist" parent="NSLocationWhenInUseUsageDescription">
             <string>$GEOFENCE_IN_USE_USAGE_DESCRIPTION</string>
         </config-file>
@@ -136,9 +131,7 @@
         </config-file>
         <header-file src="src/ios/Geofence-Plugin-Bridging-Header.h" />
         <source-file src="src/ios/GeofencePlugin.swift"/>
-        <source-file src="src/ios/SwiftData.swift"/>
         <source-file src="src/ios/SwiftyJson.swift"/>
-        <framework src="libsqlite3.dylib"/>
         <framework src="WebKit.framework" weak="true" />
     </platform>
 </plugin>
