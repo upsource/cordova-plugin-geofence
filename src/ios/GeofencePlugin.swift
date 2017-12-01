@@ -45,6 +45,7 @@ import UserNotifications
     func addOrUpdate(_ command: CDVInvokedUrlCommand) {
         print("addOrUpdate GeofencePlugin")
         DispatchQueue.global(qos: DispatchQoS.QoSClass.default).async {
+            self.delegate.removeAllGeoNotifications()
             for geo in command.arguments {
                 self.delegate.addOrUpdateGeoNotification(JSON(geo))
             }
@@ -72,11 +73,16 @@ import UserNotifications
 class GeofenceDelegate : NSObject, UNUserNotificationCenterDelegate {
 
     lazy var center = UNUserNotificationCenter.current()
+    lazy var category = UNNotificationCategory(identifier: "OurGeofenceNotiCategory",
+               actions: [snoozeAction,deleteAction],
+               intentIdentifiers: [], options: [])
+    
     var webView: Optional<UIWebView>
     var lastlatlon: String = "null"
     
     init(webView: UIWebView) {
         self.webView = webView
+        self.center.setNotificationCategories([self.category])
     }
     
     func addOrUpdateGeoNotification(_ geoNotification: JSON) {
@@ -101,6 +107,7 @@ class GeofenceDelegate : NSObject, UNUserNotificationCenterDelegate {
         content.body = geoNotification["notification"]["text"].stringValue
         content.userInfo.updateValue(uuid, forKey: "uuid")
         content.sound = UNNotificationSound.default()
+        content.categoryIdentifier = "OurGeofenceNotiCategory"
         if let json = geoNotification["notification"]["data"] as JSON? {
             content.userInfo.updateValue(json.rawString(String.Encoding.utf8.rawValue, options: [])!, forKey: "geofence.notification.data")
         }
