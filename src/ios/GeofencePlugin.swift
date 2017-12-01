@@ -2,15 +2,16 @@ import WebKit
 import UserNotifications
 
 @objc(HWPGeofencePlugin) class GeofencePlugin : CDVPlugin {
-
-    lazy var geoNotificationManager = GeoNotificationManager(webView: self.webView)
-
+    
+    let geoNotificationManager = GeoNotificationManager()
+    
     override func pluginInitialize () {
         print("pluginInitialize GeofencePlugin");
     }
-
+    
     func initialize(_ command: CDVInvokedUrlCommand) {
         print("initialize GeofencePlugin")
+        geoNotificationManager.webView = self.webView
         geoNotificationManager.center.requestAuthorization(options: [.alert, .sound]) {
             (granted, error) in
             if granted && self.geoNotificationManager.checkRequirements() {
@@ -21,13 +22,13 @@ import UserNotifications
                                 messageAs: "no auth to send notifications"), callbackId: command.callbackId)
         }
     }
-
+    
     func deviceReady(_ command: CDVInvokedUrlCommand) {
         print("deviceReady GeofencePlugin")
         commandDelegate!.send(
             CDVPluginResult(status: CDVCommandStatus_OK), callbackId: command.callbackId)
     }
-
+    
     func addOrUpdate(_ command: CDVInvokedUrlCommand) {
         print("addOrUpdate GeofencePlugin")
         DispatchQueue.global(qos: DispatchQoS.QoSClass.default).async {
@@ -40,7 +41,7 @@ import UserNotifications
             }
         }
     }
-
+    
     func removeAll(_ command: CDVInvokedUrlCommand) {
         print("removeAll GeofencePlugin")
         DispatchQueue.global(qos: DispatchQoS.QoSClass.default).async {
@@ -56,13 +57,12 @@ import UserNotifications
 class GeoNotificationManager : NSObject, UNUserNotificationCenterDelegate {
     var webView: Optional<UIView>
     let center = UNUserNotificationCenter.current()
-
-    init(webView: UIView) {
+    
+    override init() {
         super.init()
-        self.webView = webView
         center.delegate = self
     }
-
+    
     func addOrUpdateGeoNotification(_ geoNotification: JSON) {
         print("AddOrUpdate geo: \(geoNotification)")
         let location = CLLocationCoordinate2DMake(
@@ -78,7 +78,7 @@ class GeoNotificationManager : NSObject, UNUserNotificationCenterDelegate {
         }
         region.notifyOnEntry = 0 != transitionType & 1
         region.notifyOnExit = 0 != transitionType & 2
-
+        
         let content = UNMutableNotificationContent()
         let uuid = UUID().uuidString
         content.title = geoNotification["notification"]["title"].stringValue
@@ -88,7 +88,7 @@ class GeoNotificationManager : NSObject, UNUserNotificationCenterDelegate {
         if let json = geoNotification["notification"]["data"] as JSON? {
             content.userInfo.updateValue(json.rawString(String.Encoding.utf8.rawValue, options: [])!, forKey: "geofence.notification.data")
         }
-
+        
         let trigger = UNLocationNotificationTrigger(region: region, repeats: true)
         let identifier = "BWBLocalNotification_" + region.identifier
         let request = UNNotificationRequest(identifier: identifier,
@@ -101,7 +101,7 @@ class GeoNotificationManager : NSObject, UNUserNotificationCenterDelegate {
             }
         })
     }
-
+    
     func evaluateJs (_ script: String) {
         print("evaluateJs GeofencePlugin")
         if let webView = self.webView  {
@@ -114,7 +114,7 @@ class GeoNotificationManager : NSObject, UNUserNotificationCenterDelegate {
             print("webView is nil")
         }
     }
-
+    
     func userNotificationCenter(_ center: UNUserNotificationCenter,
                                 willPresent notification: UNNotification,
                                 withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
@@ -122,25 +122,23 @@ class GeoNotificationManager : NSObject, UNUserNotificationCenterDelegate {
         print("userNotificationCenter1 GeofencePlugin: " + uuid!)
         completionHandler([.alert,.sound])
     }
-
+    
     func userNotificationCenter(_ center: UNUserNotificationCenter,
                                 didReceive response: UNNotificationResponse,
                                 withCompletionHandler completionHandler: @escaping () -> Void) {
-
+        
         print("userNotificationCenter2 GeofencePlugin")
         switch response.actionIdentifier {
         case UNNotificationDefaultActionIdentifier:
-            if UIApplication.shared.applicationState != UIApplicationState.active {
-                let data = response.notification.request.content.userInfo["geofence.notification.data"] as? String
-                let js = "setTimeout('geofence.onNotificationClicked(" + data! + ")',0)"
-                evaluateJs(js)
-            }
+            let data = response.notification.request.content.userInfo["geofence.notification.data"] as? String
+            let js = "setTimeout('geofence.onNotificationClicked(" + data! + ")',0)"
+            evaluateJs(js)
         default:
             print("Unknown action")
         }
         completionHandler()
     }
-
+    
     func checkRequirements() -> Bool {
         print("GeoNotificationManager checkRequirements GeofencePlugin")
         if (!CLLocationManager.isMonitoringAvailable(for: CLRegion.self)) {
@@ -157,8 +155,10 @@ class GeoNotificationManager : NSObject, UNUserNotificationCenterDelegate {
         }
         return true
     }
-
+    
     func removeAllGeoNotifications() {
         center.removeAllPendingNotificationRequests()
     }
 }
+
+
