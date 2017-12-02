@@ -66,6 +66,11 @@
                     <action android:name="android.intent.action.BOOT_COMPLETED" />
                 </intent-filter>
             </receiver>
+            <activity
+                android:name="com.cowbell.cordova.geofence.ClickReceiver"
+                android:launchMode="singleInstance"
+                android:theme="@android:style/Theme.Translucent"
+                android:exported="false" />
         </config-file>
 
         <config-file target="AndroidManifest.xml" parent="/manifest">
