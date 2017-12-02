@@ -61,10 +61,14 @@ public class ClickReceiver extends Activity {
         if (intentLaunch == null)
             return;
 
+        intentLaunch.putExtra("geofence.notification.data", intent.getStringExtra("geofence.notification.data"));
         intentLaunch.addFlags(
                 FLAG_ACTIVITY_REORDER_TO_FRONT | FLAG_ACTIVITY_SINGLE_TOP);
 
         context.startActivity(intentLaunch);
+
+        //TODO:
+        GeofencePlugin.sendJavascriptFromClick(intent.getStringExtra("geofence.notification.data"));
     }
 
     /**
