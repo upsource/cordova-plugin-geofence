@@ -29,43 +29,54 @@ public class AddGeofenceCommand extends AbstractGoogleServiceCommand {
         this.pendingIntent = pendingIntent;
     }
 
+    GeofencingRequest getGeofencingRequest() {
+        GeofencingRequest.Builder builder = new GeofencingRequest.Builder();
+        //triggers events only when the user stops for a defined duration within a geofence.
+        builder.setInitialTrigger(0);
+        builder.addGeofences(this.geofencesToAdd);
+        return builder.build();
+    }
+
     @Override
     public void ExecuteCustomCode() {
         logger.log(Log.DEBUG, "Adding new geofences...");
         if (geofencesToAdd != null && geofencesToAdd.size() > 0) try {
+            if (ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                return;
+            }
             LocationServices.GeofencingApi
-                .addGeofences(mGoogleApiClient, geofencesToAdd, pendingIntent)
-                .setResultCallback(new ResultCallback<Status>() {
-                    @Override
-                    public void onResult(Status status) {
-                        if (status.isSuccess()) {
-                            logger.log(Log.DEBUG, "Geofences successfully added");
-                            CommandExecuted();
-                        } else try {
-                            Map<Integer, String> errorCodeMap = new HashMap<Integer, String>();
-                            errorCodeMap.put(GeofenceStatusCodes.GEOFENCE_NOT_AVAILABLE, GeofencePlugin.ERROR_GEOFENCE_NOT_AVAILABLE);
-                            errorCodeMap.put(GeofenceStatusCodes.GEOFENCE_TOO_MANY_GEOFENCES, GeofencePlugin.ERROR_GEOFENCE_LIMIT_EXCEEDED);
+                    .addGeofences(mGoogleApiClient, getGeofencingRequest(), pendingIntent)
+                    .setResultCallback(new ResultCallback<Status>() {
+                        @Override
+                        public void onResult(Status status) {
+                            if (status.isSuccess()) {
+                                logger.log(Log.DEBUG, "Geofences successfully added");
+                                CommandExecuted();
+                            } else try {
+                                Map<Integer, String> errorCodeMap = new HashMap<Integer, String>();
+                                errorCodeMap.put(GeofenceStatusCodes.GEOFENCE_NOT_AVAILABLE, GeofencePlugin.ERROR_GEOFENCE_NOT_AVAILABLE);
+                                errorCodeMap.put(GeofenceStatusCodes.GEOFENCE_TOO_MANY_GEOFENCES, GeofencePlugin.ERROR_GEOFENCE_LIMIT_EXCEEDED);
 
-                            Integer statusCode = status.getStatusCode();
-                            String message = "Adding geofences failed - SystemCode: " + statusCode;
-                            JSONObject error = new JSONObject();
-                            error.put("message", message);
+                                Integer statusCode = status.getStatusCode();
+                                String message = "Adding geofences failed - SystemCode: " + statusCode;
+                                JSONObject error = new JSONObject();
+                                error.put("message", message);
 
-                            if (statusCode == GeofenceStatusCodes.GEOFENCE_NOT_AVAILABLE) {
-                                error.put("code", GeofencePlugin.ERROR_GEOFENCE_NOT_AVAILABLE);
-                            } else if (statusCode == GeofenceStatusCodes.GEOFENCE_TOO_MANY_GEOFENCES) {
-                                error.put("code", GeofencePlugin.ERROR_GEOFENCE_LIMIT_EXCEEDED);
-                            } else {
-                                error.put("code", GeofencePlugin.ERROR_UNKNOWN);
+                                if (statusCode == GeofenceStatusCodes.GEOFENCE_NOT_AVAILABLE) {
+                                    error.put("code", GeofencePlugin.ERROR_GEOFENCE_NOT_AVAILABLE);
+                                } else if (statusCode == GeofenceStatusCodes.GEOFENCE_TOO_MANY_GEOFENCES) {
+                                    error.put("code", GeofencePlugin.ERROR_GEOFENCE_LIMIT_EXCEEDED);
+                                } else {
+                                    error.put("code", GeofencePlugin.ERROR_UNKNOWN);
+                                }
+
+                                logger.log(Log.ERROR, message);
+                                CommandExecuted(error);
+                            } catch (JSONException exception) {
+                                CommandExecuted(exception);
                             }
-
-                            logger.log(Log.ERROR, message);
-                            CommandExecuted(error);
-                        } catch (JSONException exception) {
-                            CommandExecuted(exception);
                         }
-                    }
-                });
+                    });
         } catch (Exception exception) {
             logger.log(LOG.ERROR, "Exception while adding geofences");
             exception.printStackTrace();
