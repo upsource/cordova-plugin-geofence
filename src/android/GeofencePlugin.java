@@ -32,6 +32,7 @@ public class GeofencePlugin extends CordovaPlugin {
     private GeoNotificationManager geoNotificationManager;
     private Context context;
     public static CordovaWebView webView = null;
+    public static boolean deviceready = false;
 
     private class Action {
         public String action;
@@ -125,11 +126,12 @@ public class GeofencePlugin extends CordovaPlugin {
         } else {
             ((Activity)(webView.getContext())).runOnUiThread(new Runnable() {
                 public void run() {
-                    String js = "setTimeout('geofence.onNotificationClicked(" + data + ")',0)";
+                    String js = "window.opendata = " + data;
                     webView.loadUrl("javascript:" + js);
                 }
             });
         }
+        deviceready = true;
     }
 
     private void initialize(CallbackContext callbackContext) {
@@ -173,16 +175,14 @@ public class GeofencePlugin extends CordovaPlugin {
         }
     }
 
-    /**
+     /**
      * Use this instead of deprecated sendJavascript
      */
     static synchronized void sendJavascriptFromClick(final String data) {
-        /*
+
         if (!deviceready || webView == null) {
-            eventQueue.add(js);
             return;
         }
-        */
         ((Activity)(webView.getContext())).runOnUiThread(new Runnable() {
             public void run() {
                 webView.loadUrl("javascript:setTimeout('geofence.onNotificationClicked(" + data + ")',0)");
