@@ -36,7 +36,7 @@ public class AddGeofenceCommand extends AbstractGoogleServiceCommand {
     GeofencingRequest getGeofencingRequest() {
         GeofencingRequest.Builder builder = new GeofencingRequest.Builder();
         //triggers events only when the user stops for a defined duration within a geofence.
-        //builder.setInitialTrigger(0);
+        builder.setInitialTrigger(GeofencingRequest.INITIAL_TRIGGER_ENTER);
         builder.addGeofences(this.geofencesToAdd);
         return builder.build();
     }
